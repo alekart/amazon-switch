@@ -3,7 +3,7 @@
     "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": true,
-    "module": "ES2020",
+    "module": "ES2022",
     "target": "ES6",
     "allowJs": true,
     "moduleResolution": "node",
@@ -17,10 +17,17 @@
     "lib": [
       "DOM",
       "ES6",
-      "ES2019"
-    ]
+      "ES2022"
+    ],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.tsx",
   ]
 }

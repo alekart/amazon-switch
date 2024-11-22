@@ -10,6 +10,7 @@ module.exports = {
     popup: './src/popup.tsx',
     service_worker: './src/service_worker.ts',
     'content-style': './src/styles/content.scss',
+    'popup-style': './src/styles/popup.scss',
   },
   plugins: [
     new MiniCssExtractPlugin(),
@@ -17,7 +18,8 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: '*',
+          from: '*.(html|json)',
+          to: '[name][ext]',
           context: 'src',
         },
         {
@@ -42,14 +44,14 @@ module.exports = {
         use: [
           MiniCssExtractPlugin.loader,
           'css-loader',
+          'sass-loader'
+        ],
+      },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        use: [
           {
-            loader: 'sass-loader',
-            options: {
-              // Prefer `dart-sass`
-              implementation: require('sass'),
-              sourceMap: true,
-              webpackImporter: false,
-            },
+            loader: 'file-loader',
           },
         ],
       },

@@ -1,5 +1,6 @@
 const config = require('./webpack.config');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   ...config,
@@ -13,14 +14,6 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: [
-          {
-            loader: 'babel-loader',
-            options: {
-              plugins: [
-                ['lodash'],
-              ],
-            },
-          },
           'ts-loader',
         ],
         exclude: /node_modules/,
@@ -33,7 +26,6 @@ module.exports = {
           {
             loader: 'sass-loader',
             options: {
-              // Prefer `dart-sass`
               implementation: require('sass'),
               sourceMap: false,
               sassOptions: {
@@ -43,9 +35,18 @@ module.exports = {
           },
         ],
       },
+      {
+        test: /\.(png|jpe?g|gif|svg)$/i,
+        use: [
+          {
+            loader: 'file-loader',
+          },
+        ],
+      },
     ],
   },
   optimization: {
     minimize: true,
+    minimizer: [new TerserPlugin()],
   },
 };
