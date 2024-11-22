@@ -1,15 +1,15 @@
-import { from, mergeMap, Observable, of, throwError } from 'rxjs';
-import { Link, Price } from './interfaces';
+import {from, mergeMap, Observable, of, throwError} from 'rxjs';
+import {Country, CountryLink, Price, Settings} from './interfaces';
 
-export class AmznSwitch {
-  static countries = [
-    'com.be',
-    'de',
-    'es',
-    'fr',
-    'it',
-    'nl',
-    'co.uk',
+export class AmazonSwitch {
+  static countries: Country[] = [
+    {code: 'be', enabled: true, order: 0, ext: 'com.be', name: 'Belgium'},
+    {code: 'fr', enabled: true, order: 1, ext: 'fr', name: 'France'},
+    {code: 'de', enabled: true, order: 2, ext: 'de', name: 'Germany'},
+    {code: 'es', enabled: true, order: 3, ext: 'es', name: 'Spain'},
+    {code: 'it', enabled: true, order: 4, ext: 'it', name: 'Italy'},
+    {code: 'nl', enabled: true, order: 5, ext: 'nl', name: 'Netherlands'},
+    {code: 'uk', enabled: true, order: 6, ext: 'co.uk', name: 'United Kingdom'},
   ];
 
   current: string;
@@ -17,32 +17,36 @@ export class AmznSwitch {
   parser = new DOMParser();
   url: string;
   hostname: string;
-  links: Link[];
+  links: CountryLink[];
 
-  constructor(url?: string) {
+  constructor(settings: Settings, url?: string) {
     this.current = this.detectCurrent();
-    this.links = this.getCountriesLinks();
+    this.links = this.getCountriesLinks(settings.countries);
+    console.log('plop', settings.countries);
     this.menu = this.createMenuElement(this.links);
     this.getPrices(this.links);
     this.url = url || window.location.href;
     this.hostname = url ? new URL(url).hostname : window.location.hostname;
+
   }
 
   addMenu(element: HTMLElement) {
     element.appendChild(this.menu);
   }
 
-  private getPrices(links: Link[]) {
+  private getPrices(links: CountryLink[]) {
     links.forEach((link, index) => {
-      this.getPrice(link.href).subscribe((price) => {
-        this.addPriceToMenu(price, link.flag);
-        this.addPriceInPage(price, link, index);
-      });
+      if (link.href) {
+        this.getPrice(link.href).subscribe((price) => {
+          this.addPriceToMenu(price, link.code);
+          this.addPriceInPage(price, link, index);
+        });
+      }
     });
   }
 
   private getPrice(url: string): Observable<Price> {
-    return from(new Promise<Price>((resolve, reject) => {
+    return from(new Promise<Price>((resolve) => {
       const port = chrome.runtime.connect({ name: 'amazonSwitch' });
       port.postMessage({ url });
       port.onMessage.addListener((msg) => {
@@ -58,27 +62,26 @@ export class AmznSwitch {
     }));
   }
 
-  private getList(links: Link[]) {
+  private getList(links: CountryLink[]) {
     return links.reduce((accum, link, index) => {
-      const elementId = `amzn-switch-${link.country}`;
+      const elementId = `amzn-switch-${link.name.toLowerCase()}`;
       return `${accum}
       <a id="${elementId}" data-index="${index}" class="amzns-link nav-link nav-item" href="${link.href}">
-        <span class="icp-nav-flag icp-nav-flag-${link.flag} icp-nav-flag-lop"></span>
-        <span class="nav-text amzns-country" translate="no">${link.flag}</span>
-        <span id="amzns-price-${link.flag}" class="amzns-price"></span>
+        <span class="icp-nav-flag icp-nav-flag-${link.code} icp-nav-flag-lop"></span>
+        <span class="nav-text amzns-country" translate="no">${link.code}</span>
+        <span id="amzns-price-${link.code}" class="amzns-price"></span>
       </a>`;
     }, '');
   }
 
-  private getCountriesLinks(): Link[] {
-    return AmznSwitch.countries.reduce((accum, country) => {
-      if (this.current === country) {
+  private getCountriesLinks(countries: Country[]): CountryLink[] {
+    return countries.reduce((accum: CountryLink[], country) => {
+      if (!country.enabled || this.current === country.ext) {
         return accum;
       }
-      const flag: string = country.replace(/com?\./, '');
-      const href = this.localizeUrl(country);
-      return [...accum, { href: href, flag, country }];
-    }, [] as Link[]);
+      const href = this.localizeUrl(country.ext);
+      return [...accum, {href: href, ...country}];
+    }, []);
   }
 
   private addPriceToMenu(price: Price, country: string) {
@@ -98,11 +101,14 @@ export class AmznSwitch {
     }
   }
 
-  private addPriceInPage(price: Price, link: Link, index: number) {
+  private addPriceInPage(price: Price, link: CountryLink, index: number) {
     const priceHolder = document.querySelector(`.priceToPay`);
+    if (!priceHolder) {
+      return;
+    }
     const priceTmpl = `
-      <a id="page-price-${link.flag}" style="order: ${index}" class="amzns-in-page" href="${link.href}">
-        <span class="icp-nav-flag icp-nav-flag-${link.flag} icp-nav-flag-lop"></span><!--
+      <a id="page-price-${link.code}" style="order: ${index}" class="amzns-in-page" href="${link.href}">
+        <span class="icp-nav-flag icp-nav-flag-${link.code} icp-nav-flag-lop"></span><!--
           --><span class="a-price-whole">
               ${price.whole}<!--
           --><span class="a-price-decimal">,</span><!--
@@ -129,13 +135,13 @@ export class AmznSwitch {
     return hostname.replace(/^.+amazon\./, '');
   }
 
-  private createMenuElement(links: Link[]): HTMLElement {
+  private createMenuElement(links: CountryLink[]): HTMLElement {
     return this.parser
       .parseFromString(this.getTemplate(links), 'text/html')
-      .querySelector('.amzns-list');
+      .querySelector('.amzns-list') as HTMLElement;
   }
 
-  private getTemplate(links: Link[]) {
+  private getTemplate(links: CountryLink[]) {
     return `
     <span class="nav-icon nav-arrow" style="visibility: visible;"></span>
     <div class="amzns-list nav-flyout">
