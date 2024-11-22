@@ -1,5 +1,5 @@
-import { HTMLElement, parse } from 'node-html-parser';
-import { Price } from './interfaces';
+import {HTMLElement, parse} from 'node-html-parser';
+import {Price} from './interfaces';
 
 chrome.runtime.onConnect.addListener(function (port) {
   port.onMessage.addListener(function (msg) {
@@ -32,9 +32,9 @@ function findPrice(tree: HTMLElement): Price | null {
   if (!priceElement) {
     return null;
   }
-  const whole = tree.querySelector('.a-price-whole')?.innerText.replace(/\D/g, '');
-  const decimals = tree.querySelector('.a-price-fraction')?.innerText.replace(/\D/g, '');
-  const symbol = tree.querySelector('.a-price-symbol')?.innerText.trim();
+  const whole = tree.querySelector('.a-price-whole')?.innerText.replace(/\D/g, '') || '';
+  const decimals = tree.querySelector('.a-price-fraction')?.innerText.replace(/\D/g, '') || '';
+  const symbol = tree.querySelector('.a-price-symbol')?.innerText.trim() || '';
   return { whole, decimals, symbol };
 }
 
