@@ -22,12 +22,10 @@ export class AmazonSwitch {
   constructor(settings: Settings, url?: string) {
     this.current = this.detectCurrent();
     this.links = this.getCountriesLinks(settings.countries);
-    console.log('plop', settings.countries);
     this.menu = this.createMenuElement(this.links);
     this.getPrices(this.links);
     this.url = url || window.location.href;
     this.hostname = url ? new URL(url).hostname : window.location.hostname;
-
   }
 
   addMenu(element: HTMLElement) {
@@ -35,29 +33,40 @@ export class AmazonSwitch {
   }
 
   private getPrices(links: CountryLink[]) {
+    const priceHolder = document.querySelector(`.priceToPay`);
     links.forEach((link, index) => {
       if (link.href) {
-        this.getPrice(link.href).subscribe((price) => {
-          this.addPriceToMenu(price, link.code);
-          this.addPriceInPage(price, link, index);
+        const domPrice = this.createDomPrice(link, index);
+        priceHolder?.appendChild(domPrice.element);
+        domPrice.setLoading(true);
+
+        this.getPrice(link.href).subscribe({
+          next: (price) => {
+            this.addPriceToMenu(price, link.code);
+            domPrice.setPrice(price);
+            domPrice.setLoading(false);
+          },
+          error: () => {
+            domPrice.setLoading(false);
+            domPrice.disable();
+          }
         });
       }
     });
   }
 
   private getPrice(url: string): Observable<Price> {
-    return from(new Promise<Price>((resolve) => {
-      const port = chrome.runtime.connect({ name: 'amazonSwitch' });
-      port.postMessage({ url });
+    return from(new Promise<Price>((resolve, reject) => {
+      const port = chrome.runtime.connect({name: 'amazonSwitch'});
+      port.postMessage({url});
       port.onMessage.addListener((msg) => {
         if (msg?.price) {
           resolve(msg.price);
+          return;
         }
+        reject('Could not get price');
       });
     })).pipe(mergeMap((response) => {
-      if (!response) {
-        throwError(() => 'Could not get price');
-      }
       return of(response);
     }));
   }
@@ -86,7 +95,7 @@ export class AmazonSwitch {
 
   private addPriceToMenu(price: Price, country: string) {
     const priceHolder = this.menu.querySelector(`#amzns-price-${country}`);
-    const { whole, decimals, symbol, text } = price;
+    const {whole, decimals, symbol, text} = price;
     if (priceHolder) {
       priceHolder.innerHTML = `
         <span title="${text}">
@@ -101,23 +110,48 @@ export class AmazonSwitch {
     }
   }
 
-  private addPriceInPage(price: Price, link: CountryLink, index: number) {
-    const priceHolder = document.querySelector(`.priceToPay`);
-    if (!priceHolder) {
-      return;
+  private createDomPrice(countryLink: CountryLink, order: number) {
+    const link = document.createElement('a');
+    link.classList.add('amzns-in-page');
+    link.id = `page-price-${countryLink.code}`;
+    link.style.order = order.toString();
+    link.setAttribute('href', `${countryLink.href}`);
+    const flag = document.createElement('span');
+    flag.classList.add('icp-nav-flag', 'icp-nav-flag-lop', `icp-nav-flag-${countryLink.code}`);
+    const whole = document.createElement('span');
+    whole.classList.add('a-price-whole');
+    const fraction = document.createElement('span');
+    fraction.classList.add('a-price-fraction');
+    const symbol = document.createElement('span');
+    symbol.classList.add('a-price-symbol');
+    const decimal = document.createElement('span');
+    decimal.classList.add('a-price-decimal');
+    decimal.innerHTML = ',';
+    link.appendChild(flag);
+    link.appendChild(whole);
+    whole.appendChild(decimal);
+    link.appendChild(fraction);
+    link.appendChild(symbol);
+
+    return {
+      setPrice(price: Price) {
+        whole.innerHTML = price.whole;
+        decimal.innerHTML = price.decimals;
+        symbol.innerHTML = price.symbol;
+      },
+      setLoading(active: boolean) {
+        if (active) {
+          link.classList.add('loading');
+        } else {
+          link.classList.remove('loading');
+        }
+      },
+      disable() {
+        link.classList.add('disabled');
+        link.style.order = (order + 10).toString();
+      },
+      element: link,
     }
-    const priceTmpl = `
-      <a id="page-price-${link.code}" style="order: ${index}" class="amzns-in-page" href="${link.href}">
-        <span class="icp-nav-flag icp-nav-flag-${link.code} icp-nav-flag-lop"></span><!--
-          --><span class="a-price-whole">
-              ${price.whole}<!--
-          --><span class="a-price-decimal">,</span><!--
-          --></span><!--
-          --><span class="a-price-fraction">${price.decimals}</span><!--
-          --><span class="a-price-symbol">${price.symbol}</span>
-      </a>
-    `;
-    priceHolder.innerHTML = `${priceHolder.innerHTML}${priceTmpl}`;
   }
 
   private localizeUrl(country: string): string {
