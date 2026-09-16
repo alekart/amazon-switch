@@ -3,8 +3,8 @@ import {AmazonSwitch} from '../amzn-switch.class';
 
 export class ChromeHelpers {
   static async getSettings(): Promise<Settings> {
-    const settings = await chrome.storage.sync.get(['countries']);
-    const savedCountries: Country[] = settings?.countries || [];
+    const settings = await chrome.storage.sync.get(['countries']) as { countries?: Country[] };
+    const savedCountries: Country[] = settings.countries || [];
     if (!savedCountries?.length) {
       return {
         countries: AmazonSwitch.countries,
