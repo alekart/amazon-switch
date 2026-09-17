@@ -6,6 +6,7 @@
   "scripts": {
     "watch": "webpack --watch",
     "build": "webpack --config webpack-build.config.js",
+    "pack": "crx3 dist -o dist/amazon-switch.extension.crx",
     "bump-next-major": "node ./scripts/bump-version.js major next",
     "bump-next-minor": "node ./scripts/bump-version.js minor next",
     "bump-next-patch": "node ./scripts/bump-version.js patch next",
@@ -20,6 +21,7 @@
     "@types/semver": "^7.8.0",
     "@types/yargs": "^17.0.35",
     "copy-webpack-plugin": "^14.0.0",
+    "crx3": "^2.0.0",
     "css-loader": "^7.1.5",
     "file-loader": "^6.2.0",
     "mini-css-extract-plugin": "^2.10.2",
@@ -40,7 +42,6 @@
     "node-html-parser": "^9.0.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "react-scripts": "^5.0.1",
     "rxjs": "^7.8.2"
   }
 }
