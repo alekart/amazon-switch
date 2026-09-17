@@ -5,7 +5,7 @@ chrome.runtime.onConnect.addListener(function (port) {
   port.onMessage.addListener(function (msg) {
     if (msg.url) {
       fetchPrice(msg.url).then((price) => {
-        port.postMessage({ price });
+        port.postMessage({price});
       });
     }
   });
@@ -32,10 +32,10 @@ function findPrice(tree: HTMLElement): Price | null {
   if (!priceElement) {
     return null;
   }
-  const whole = tree.querySelector('.a-price-whole')?.innerText.replace(/\D/g, '') || '';
-  const decimals = tree.querySelector('.a-price-fraction')?.innerText.replace(/\D/g, '') || '';
+  const whole = tree.querySelector('.a-price-whole')?.innerText.trim().replace('.', '') || '';
+  const decimals = tree.querySelector('.a-price-fraction')?.innerText.trim() || '';
   const symbol = tree.querySelector('.a-price-symbol')?.innerText.trim() || '';
-  return { whole, decimals, symbol };
+  return {whole, decimals, symbol};
 }
 
 function findPriceToPay(tree: HTMLElement): Price | null {
@@ -43,12 +43,13 @@ function findPriceToPay(tree: HTMLElement): Price | null {
   if (!priceElement) {
     return null;
   }
-  const isolateSymbol = (value: string): string => value.replace(/\d/g, '');
-  const isolateNumbers = (value: string): string => value.replace(/\D/g, '');
   const text = priceElement.innerText;
-  const split = text.split(/[.,]/);
-  const symbol = isolateSymbol(split[0]) || isolateSymbol(split[1]);
-  const whole = isolateNumbers(split[0]);
-  const decimals = isolateNumbers(split[1]);
-  return { whole, decimals, symbol, text };
+  const regex = /^(?<symbol>[$€])?(?<whole>\d{1,3}(?:,\d{3})*|\d+)\.(?<decimals>\d{2})(?<symbolAfter>[$€])?$/;
+  const match = text.match(regex);
+  return {
+    symbol: match?.groups?.symbol || match?.groups?.symbolAfter || '',
+    whole: match?.groups?.whole || '',
+    decimals: match?.groups?.decimals || '',
+    text,
+  };
 }
