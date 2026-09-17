@@ -128,15 +128,15 @@ export class AmazonSwitch {
     decimal.classList.add('a-price-decimal');
     decimal.innerHTML = ',';
     link.appendChild(flag);
+    link.appendChild(symbol);
     link.appendChild(whole);
     whole.appendChild(decimal);
     link.appendChild(fraction);
-    link.appendChild(symbol);
 
     return {
       setPrice(price: Price) {
         whole.innerHTML = price.whole;
-        decimal.innerHTML = price.decimals;
+        fraction.innerHTML = price.decimals;
         symbol.innerHTML = price.symbol;
       },
       setLoading(active: boolean) {
