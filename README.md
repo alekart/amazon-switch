@@ -34,4 +34,5 @@ To build the project run:
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+This project is configured for static prerender (SSG), so the build generates pre-rendered HTML files and static assets in `dist/`.
+No Node SSR runtime server is required for deployment.
